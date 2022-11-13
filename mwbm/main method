@@ -1,0 +1,61 @@
+public static void main(String[] args) {
+    final int n = 3;
+    final double epsilon = Math.round(100*1.0/n)/100.0;
+    final int m = 3;
+
+    System.out.println(epsilon);
+    Double[] tempPrices = {5.0, 7.0, 13.0};
+    Double[][] tempBeta = {{11.0, 12.0, 15.0}, {15.0, 16.0, 18.0}, {9.0, 9.0, 14.0}};
+    Integer[][] tempNeighbors = {{1}, {0, 2}, {1}};
+
+    List<List<Double>> pricesList = new ArrayList<>();
+    for(int i = 0; i<n; i++){
+        pricesList.add(Arrays.asList(tempPrices));
+    }
+
+    List<List<Double>> betaList = new ArrayList<>();
+    for(int i = 0; i<n; i++){
+        betaList.add(Arrays.asList(tempBeta[i]));
+    }
+
+    System.out.println(pricesList);
+    System.out.println(betaList);
+
+    ports = new int[n];
+    for(int i = 0 ; i < n; i++){
+        ports[i] = 1100+i;
+    }
+
+    List<HashMap<Integer, Integer>> neighborsList = new ArrayList<>();
+    HashMap<Integer, Integer> tempMap;
+    for(int i=0; i<n; i++){
+        tempMap = new HashMap<>();
+        for(int k = 0; k<tempNeighbors[i].length; k++){
+            tempMap.put(tempNeighbors[i][k], ports[tempNeighbors[i][k]]);
+        }
+        neighborsList.add(tempMap);
+    }
+
+    System.out.println(neighborsList);
+
+    Agent[] agentList = new Agent[n];
+    for(int i = 0; i < n; i++){
+        agentList[i] = new Agent(i, pricesList.get(i), betaList.get(i), neighborsList.get(i), ports[i], n, epsilon);
+    }
+
+    for(Agent agent: agentList)
+        System.out.println(agent);
+
+    for(Agent agent: agentList)
+        agent.StartAgent();
+
+    System.out.println("... Passed");
+
+    try {
+        Thread.sleep(10000);
+    } catch (Exception e){
+        e.printStackTrace();
+    }
+
+    cleanup(agentList);
+}

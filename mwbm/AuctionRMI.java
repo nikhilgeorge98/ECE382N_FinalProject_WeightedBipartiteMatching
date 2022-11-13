@@ -9,4 +9,5 @@ import java.util.List;
  */
 public interface AuctionRMI extends Remote{
     void Auction(List<Double> p, List<Integer> b, List<Integer> c, boolean b1, boolean done, int caller) throws RemoteException;
+//    void Auction(Bid bid, boolean first, boolean done) throws RemoteException;
 }

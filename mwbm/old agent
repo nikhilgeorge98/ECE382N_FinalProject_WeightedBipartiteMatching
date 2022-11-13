@@ -134,10 +134,10 @@ public class Agent implements AuctionRMI, Runnable{
         if(!first)
             this.communicationCycles++;
 
-        if(this.heardDone) {
-            System.out.println("I'm done "+this.agent_id);
-            return;
-        }
+//        if(this.heardDone) {
+//            System.out.println("I'm done "+this.agent_id);
+//            return;
+//        }
 
         List<Double> tempPrices = new ArrayList<>();
         for(int j = 0; j<prices.size(); j++){
@@ -148,7 +148,7 @@ public class Agent implements AuctionRMI, Runnable{
         double previousP_i_alpha = this.prices.get(this.alpha);
 
         for(int i = 0; i < n; i++) {
-            this.count.set(i, Math.max(this.count.get(i), c.get(i))); //definitely wrong
+            this.count.set(i, Math.max(this.count.get(i), c.get(i)));
         }
 
         for(int j = 0; j < m; j++) {
@@ -209,36 +209,17 @@ public class Agent implements AuctionRMI, Runnable{
                 this.count.set(this.agent_id, this.count.get(this.agent_id)+1);
         }
 
-        System.out.println("Step 2 + received from: "+caller+"\n" + this);
-
-//        int tempCount = 0;
-//        for(int i = 0; i<this.n;i++) {
-//            if(this.count.get(i) >= (this.n - 1)) {
-//                tempCount += 1;
-//            }
-//        }
-//        if(tempCount == this.n) {
-//            System.out.println("Exit condition reached for agent: "+this.agent_id+" "+this.count);
-//            this.heardDone = true;
-//            return;
-////            done = true;
-//        }
+        System.out.println(this);
 
         int tempCount = 0;
         for(int i = 0; i<this.n;i++) {
-            if(this.bidders.get(i) != - 1) {
+            if(this.count.get(i) >= (this.n - 1)) {
                 tempCount += 1;
             }
         }
         if(tempCount == this.n) {
             System.out.println("Exit condition reached for agent: "+this.agent_id+" "+this.count);
             this.heardDone = true;
-//            for(Map.Entry<Integer, Integer> entry : this.neighbors.entrySet()) {
-////            System.out.println("entry.getKey() " + entry.getKey() + " this.agent_id: " + this.agent_id + " this.neighbors: " + this.neighbors);
-//                this.nRMI++;
-//                new Thread(() -> Call("Auction", this.prices, this.bidders, this.count, entry.getKey(), done, this.agent_id)).start();
-////            Call("Auction", this.prices, this.bidders, this.count, entry.getKey(), done, this.agent_id);
-//            }
             return;
 //            done = true;
         }
