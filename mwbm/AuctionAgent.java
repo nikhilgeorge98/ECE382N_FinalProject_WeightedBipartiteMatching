@@ -9,7 +9,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 
-public class Agent implements AuctionRMI, Runnable{
+public class AuctionAgent implements AuctionRMI, Runnable{
+
+    long start;
+    long end;
+    double total;
 
     int alpha;
     int n;
@@ -35,7 +39,7 @@ public class Agent implements AuctionRMI, Runnable{
 
     AtomicBoolean dead;// for testing
 
-    public Agent(int agent_id, List<Double> prices, List<Double> beta, HashMap<Integer, Integer> neighbors, int myPort, int n, double epsilon) {
+    public AuctionAgent(int agent_id, List<Double> prices, List<Double> beta, HashMap<Integer, Integer> neighbors, int myPort, int n, double epsilon) {
         this.agent_id = agent_id;
         this.prices = prices;
         this.beta = beta;
@@ -83,11 +87,10 @@ public class Agent implements AuctionRMI, Runnable{
     }
 
     public void Call(String rmi, List<Double> p, List<Integer> b, List<Integer> c, Integer id, boolean done, int caller){
-        mwbm.AuctionRMI stub;
+        AuctionRMI stub;
         try{
-//            System.out.println("call port: " + this.neighbors.get(id));
             Registry registry= LocateRegistry.getRegistry(this.neighbors.get(id));
-            stub=(mwbm.AuctionRMI) registry.lookup("Auction");
+            stub=(AuctionRMI) registry.lookup("Auction");
             if(rmi.equals("Auction"))
                 stub.Auction(p, b, c, false, done, caller);
             else
@@ -101,10 +104,8 @@ public class Agent implements AuctionRMI, Runnable{
 
     public void StartAgent()  {
         Thread thread = new Thread(this);
-// make sure the threads will be killed when all other threads finish
         thread.setDaemon(true);
         thread.start();
-//        new Thread(this).start();
     }
 
     @Override
@@ -112,30 +113,19 @@ public class Agent implements AuctionRMI, Runnable{
         // initial call to Auction method
         Auction(this.prices, this.bidders, this.count, true, false, -1);
         System.out.println("Done with run");
-//        int flag = 0;
-//        while(flag == 0){
-////            System.out.println(this.count);
-//            int tempCount = 0;
-//            for(int i = 0; i<this.n; i++) {
-//                if(this.count.get(i) >= this.n - 1) {
-//                    tempCount += 1;
-//                }
-//            }
-//            if(tempCount == n) {
-//                flag = 1;
-//            }
-//        }
     }
 
 
     public void Auction(List<Double> p, List<Integer> b, List<Integer> c, boolean first, boolean done, int caller){
-//        System.out.println(Thread.currentThread().getId()+" $$$");
-//        System.out.println(Thread.activeCount());
         if(!first)
             this.communicationCycles++;
+        else {
+            this.start = System.nanoTime();
+            System.out.println("Starttime for Agent: " + this.agent_id + " = " + this.start);
+        }
 
         if(this.heardDone) {
-            System.out.println("I'm done "+this.agent_id);
+//            System.out.println("I'm done "+this.agent_id);
             return;
         }
 
@@ -160,7 +150,6 @@ public class Agent implements AuctionRMI, Runnable{
 
         double v_i = Integer.MIN_VALUE;
         for(int j=0; j<m; j++){
-//            System.out.println("this.agent: "+ this.agent_id + " " + (this.beta.get(j) - this.prices.get(j)));
             if(this.beta.get(j) - this.prices.get(j) > v_i){
                 v_i = this.beta.get(j) - this.prices.get(j);
             }
@@ -169,8 +158,6 @@ public class Agent implements AuctionRMI, Runnable{
         for(int j = 0; j<m; j++){
             this.value.set(j, this.beta.get(j) - this.prices.get(j));
         }
-
-        System.out.println("Step 1 + received from: "+caller+"\n" + this);
 
         if(previousP_i_alpha<=this.prices.get(this.alpha) && this.bidders.get(this.alpha) != this.agent_id){
             this.count.set(this.agent_id, 0);
@@ -183,7 +170,6 @@ public class Agent implements AuctionRMI, Runnable{
                 }
             }
             this.alpha = itemWithMaxNetValue;
-//            if(this.bidders.get(this.alpha) != -1){
             double w_i = Integer.MIN_VALUE;
             for(int j=0; j<m; j++){
                 if(j!=this.alpha) {
@@ -196,11 +182,7 @@ public class Agent implements AuctionRMI, Runnable{
             System.out.println(this.epsilon);
             double gamma = v_i - w_i + this.epsilon;
             gamma = Math.round(100*gamma)/100.0;
-            System.out.println("this.agent_id " + this.agent_id + " v_i: " + v_i + " w_i: " + w_i + " gamma " + gamma + " " + tempPrices);
-
             this.prices.set(this.alpha, gamma+this.prices.get(this.alpha));
-//            }
-
             this.bidders.set(this.alpha, this.agent_id);
 
         }
@@ -209,21 +191,6 @@ public class Agent implements AuctionRMI, Runnable{
                 this.count.set(this.agent_id, this.count.get(this.agent_id)+1);
         }
 
-        System.out.println("Step 2 + received from: "+caller+"\n" + this);
-
-//        int tempCount = 0;
-//        for(int i = 0; i<this.n;i++) {
-//            if(this.count.get(i) >= (this.n - 1)) {
-//                tempCount += 1;
-//            }
-//        }
-//        if(tempCount == this.n) {
-//            System.out.println("Exit condition reached for agent: "+this.agent_id+" "+this.count);
-//            this.heardDone = true;
-//            return;
-////            done = true;
-//        }
-
         int tempCount = 0;
         for(int i = 0; i<this.n;i++) {
             if(this.bidders.get(i) != - 1) {
@@ -231,25 +198,21 @@ public class Agent implements AuctionRMI, Runnable{
             }
         }
         if(tempCount == this.n) {
-            System.out.println("Exit condition reached for agent: "+this.agent_id+" "+this.count);
+            System.out.println("Exit condition reached for agent: "+this.agent_id+" "+this.bidders);
+            this.end = System.nanoTime();
+            System.out.println("Endtime for Agent: "+this.agent_id+" = "+this.end);
+            this.total = (this.end - this.start)/1000000.0;
+            System.out.println("Totaltime for Agent: "+this.agent_id+" = "+this.total);
             this.heardDone = true;
-//            for(Map.Entry<Integer, Integer> entry : this.neighbors.entrySet()) {
-////            System.out.println("entry.getKey() " + entry.getKey() + " this.agent_id: " + this.agent_id + " this.neighbors: " + this.neighbors);
-//                this.nRMI++;
-//                new Thread(() -> Call("Auction", this.prices, this.bidders, this.count, entry.getKey(), done, this.agent_id)).start();
-////            Call("Auction", this.prices, this.bidders, this.count, entry.getKey(), done, this.agent_id);
-//            }
+
             return;
-//            done = true;
         }
 
 
         // make rmi calls to neighbors
         for(Map.Entry<Integer, Integer> entry : this.neighbors.entrySet()) {
-//            System.out.println("entry.getKey() " + entry.getKey() + " this.agent_id: " + this.agent_id + " this.neighbors: " + this.neighbors);
             this.nRMI++;
             new Thread(() -> Call("Auction", this.prices, this.bidders, this.count, entry.getKey(), done, this.agent_id)).start();
-//            Call("Auction", this.prices, this.bidders, this.count, entry.getKey(), done, this.agent_id);
         }
     }
 
@@ -274,48 +237,11 @@ public class Agent implements AuctionRMI, Runnable{
                 ", prices=" + prices +
                 ", bidders=" + bidders +
                 ", beta=" + beta +
-                ", count=" + count +
+                ", neighbors=" + neighbors +
+                ", myPort=" + myPort +
                 ", communicationCycles=" + communicationCycles +
-                ", nRMI=" + nRMI +
                 ", heardDone=" + heardDone +
                 ", value=" + value +
                 '}';
     }
 }
-
-//        lock.lock();
-//        System.out.println("##############################################");
-////        System.out.println("this.agent_id " + this.agent_id);
-//        System.out.println("this.agent_id " + this.agent_id + " this.alpha " + this.alpha);
-//        System.out.println("this.agent_id " + this.agent_id + " this.prices " + this.prices);
-//        System.out.println("this.agent_id " + this.agent_id + " this.bidders " + this.bidders);
-//        System.out.println("this.agent_id " + this.agent_id + " this.count " + this.count);
-//        System.out.println("this.agent_id " + this.agent_id + " tempCount " + tempCount);
-//        System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
-//        lock.unlock();
-
-//        System.out.println(this);
-
-
-
-//        if(done) {
-//            if(!heardDone) {
-//                heardDone = true;
-//                for (Map.Entry<Integer, Integer> entry : this.neighbors.entrySet()) {
-////            System.out.println("entry.getKey() " + entry.getKey() + " this.agent_id: " + this.agent_id + " this.neighbors: " + this.neighbors);
-//                    this.nRMI++;
-//                    Call("Auction", this.prices, this.bidders, this.count, entry.getKey(), true);
-//                }
-//            }
-//            System.out.println("Bye!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-//            return;
-//        }
-
-
-//        int v_i = Integer.MIN_VALUE;
-//        for(int j=0; j<m; j++){
-//            System.out.println("this.agent: "+ this.agent_id + " " + (this.beta.get(j) - this.prices.get(j)));
-//            if(this.beta.get(j) - this.prices.get(j) > v_i){
-//                v_i = this.beta.get(j) - this.prices.get(j);
-//            }
-//        }
